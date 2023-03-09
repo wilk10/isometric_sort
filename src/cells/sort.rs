@@ -3,19 +3,7 @@ use topological_sort::TopologicalSort;
 
 use crate::cells::current::CurrentCells;
 
-#[derive(Resource)]
-pub struct SortThisFrame {
-    pub do_sort: bool,
-}
-
-pub fn sort_items_topological(
-    mut sort_this_frame: ResMut<SortThisFrame>,
-    mut items: Query<(Entity, &CurrentCells, &mut Transform)>,
-) {
-    if !sort_this_frame.do_sort {
-        return;
-    }
-
+pub fn sort_items_topological(mut items: Query<(Entity, &CurrentCells, &mut Transform)>) {
     let mut map = TopologicalSort::<Entity>::default();
 
     let items_to_sort = items
@@ -42,18 +30,9 @@ pub fn sort_items_topological(
     for (index, entity) in map.enumerate() {
         assign_z(index, entity, items_to_sort.len(), &mut items);
     }
-
-    sort_this_frame.do_sort = false;
 }
 
-pub fn sort_items_partial_cmp(
-    mut sort_this_frame: ResMut<SortThisFrame>,
-    mut items: Query<(Entity, &CurrentCells, &mut Transform)>,
-) {
-    if !sort_this_frame.do_sort {
-        return;
-    }
-
+pub fn sort_items_partial_cmp(mut items: Query<(Entity, &CurrentCells, &mut Transform)>) {
     let mut items_to_sort = items
         .iter()
         .filter(|(_, cells, _)| cells.dimensions.z > 0)
@@ -68,8 +47,6 @@ pub fn sort_items_partial_cmp(
     for (index, (entity, _)) in items_to_sort.iter().enumerate() {
         assign_z(index, *entity, items_to_sort.len(), &mut items);
     }
-
-    sort_this_frame.do_sort = false;
 }
 
 #[allow(clippy::cast_precision_loss)]
@@ -93,9 +70,11 @@ mod sort_all_items {
     use crate::cells::{
         cell::{Cell, Direction},
         current::CurrentCells,
-        sort::{sort_items_partial_cmp, sort_items_topological, SortThisFrame},
     };
 
+    use super::*;
+
+    #[derive(Debug)]
     struct Item {
         expected_index: usize,
         main_cell: Cell,
@@ -122,8 +101,6 @@ mod sort_all_items {
             .add_system(apply_system_buffers)
             .add_system(sort_system.after(apply_system_buffers));
 
-        world.insert_resource(SortThisFrame { do_sort: true });
-
         let mut expected = items
             .iter()
             .map(|item| {
@@ -145,7 +122,7 @@ mod sort_all_items {
             main_cell,
             dimensions,
             Direction::BottomRight,
-            UVec2::new(3, 7),
+            UVec2::new(4, 7),
         );
         world
             .spawn((cells, Transform::from_translation(Vec3::ZERO)))
@@ -165,74 +142,120 @@ mod sort_all_items {
             .collect::<Vec<Entity>>()
     }
 
-    fn simple_items() -> Vec<Item> {
-        vec![
+    fn run_simple<M>(world: &mut World, system: impl IntoSystemConfig<M>) -> Vec<Entity> {
+        let mut schedule = Schedule::default();
+
+        let items = vec![
             Item::new(1, Cell::new(0, 3), UVec3::new(2, 2, 1)),
             Item::new(0, Cell::new(2, 2), UVec3::new(1, 2, 2)),
             Item::new(2, Cell::new(1, 5), UVec3::new(1, 1, 2)),
-        ]
+        ];
+        let expected_order = setup(world, &mut schedule, &items, system);
+
+        schedule.run(world);
+
+        expected_order
     }
 
-    fn busy_items() -> Vec<Item> {
-        vec![
+    fn run_busy<M>(world: &mut World, system: impl IntoSystemConfig<M>) -> Vec<Entity> {
+        let mut schedule = Schedule::default();
+
+        let items = vec![
             Item::new(2, Cell::new(0, 3), UVec3::new(2, 2, 1)),
             Item::new(4, Cell::new(1, 6), UVec3::new(1, 2, 1)),
             Item::new(0, Cell::new(2, 1), UVec3::new(1, 1, 2)),
             Item::new(3, Cell::new(1, 5), UVec3::new(1, 1, 2)),
             Item::new(5, Cell::new(0, 6), UVec3::new(1, 1, 1)),
             Item::new(1, Cell::new(2, 3), UVec3::new(1, 3, 1)),
+        ];
+        let expected_order = setup(world, &mut schedule, &items, system);
+
+        schedule.run(world);
+
+        expected_order
+    }
+
+    fn run_add_later<M>(world: &mut World, system: impl IntoSystemConfig<M>) -> Vec<Option<usize>> {
+        let mut schedule = Schedule::default();
+
+        let initial = vec![
+            Item::new(0, Cell::new(0, 4), UVec3::new(1, 1, 1)),
+            Item::new(0, Cell::new(3, 3), UVec3::new(1, 1, 1)),
+            Item::new(0, Cell::new(3, 4), UVec3::new(1, 1, 1)),
+            Item::new(0, Cell::new(1, 5), UVec3::new(1, 1, 1)),
+        ];
+        let later = Item::new(0, Cell::new(2, 4), UVec3::new(2, 2, 1));
+        let initial_entities = setup(world, &mut schedule, &initial, system);
+
+        schedule.run(world);
+
+        let later_entity = add_item(world, later.main_cell, later.dimensions);
+
+        schedule.run(world);
+
+        let actual = actual_order(world);
+        let position_last_item = actual.iter().position(|entity| *entity == later_entity);
+        let position_entity_index_2 = actual
+            .iter()
+            .position(|entity| *entity == initial_entities[2]);
+        let position_entity_index_3 = actual
+            .iter()
+            .position(|entity| *entity == initial_entities[3]);
+
+        vec![
+            position_last_item,
+            position_entity_index_2,
+            position_entity_index_3,
         ]
     }
 
     #[test]
     fn simple_topological() {
         let mut world = World::default();
-        let mut schedule = Schedule::default();
-
-        let items = simple_items();
-        let expected_order = setup(&mut world, &mut schedule, &items, sort_items_topological);
-
-        schedule.run(&mut world);
-
+        let expected_order = run_simple(&mut world, sort_items_topological);
         assert_eq!(actual_order(&mut world), expected_order);
     }
 
     #[test]
     fn simple_partial_cmp() {
         let mut world = World::default();
-        let mut schedule = Schedule::default();
-
-        let items = simple_items();
-        let expected_order = setup(&mut world, &mut schedule, &items, sort_items_partial_cmp);
-
-        schedule.run(&mut world);
-
+        let expected_order = run_simple(&mut world, sort_items_partial_cmp);
         assert_eq!(actual_order(&mut world), expected_order);
     }
 
     #[test]
     fn busy_topological() {
         let mut world = World::default();
-        let mut schedule = Schedule::default();
-
-        let items = busy_items();
-        let expected_order = setup(&mut world, &mut schedule, &items, sort_items_topological);
-
-        schedule.run(&mut world);
-
+        let expected_order = run_busy(&mut world, sort_items_topological);
         assert_eq!(actual_order(&mut world), expected_order);
     }
 
     #[test]
     fn busy_partial_cmp() {
         let mut world = World::default();
-        let mut schedule = Schedule::default();
-
-        let items = busy_items();
-        let expected_order = setup(&mut world, &mut schedule, &items, sort_items_partial_cmp);
-
-        schedule.run(&mut world);
-
+        let expected_order = run_busy(&mut world, sort_items_partial_cmp);
         assert_eq!(actual_order(&mut world), expected_order);
+    }
+
+    #[test]
+    fn add_later_topological() {
+        let mut world = World::default();
+        let positions = run_add_later(&mut world, sort_items_topological);
+        let position_last_item = positions[0];
+        let position_item_2 = positions[1];
+        let position_item_3 = positions[2];
+        assert!(position_last_item < position_item_2);
+        assert!(position_last_item < position_item_3);
+    }
+
+    #[test]
+    fn add_later_partial_cmp() {
+        let mut world = World::default();
+        let positions = run_add_later(&mut world, sort_items_partial_cmp);
+        let position_last_item = positions[0];
+        let position_item_2 = positions[1];
+        let position_item_3 = positions[2];
+        assert!(position_last_item < position_item_2);
+        assert!(position_last_item < position_item_3);
     }
 }
