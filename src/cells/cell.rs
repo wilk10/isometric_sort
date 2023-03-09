@@ -26,14 +26,20 @@ impl Cell {
         })
     }
 
-    #[cfg(test)]
+    #[allow(dead_code)]
     fn all_next_cells(self, map_size: UVec2) -> impl Iterator<Item = Cell> {
         self.directional_next_cells(map_size, Direction::all().iter())
             .into_iter()
             .flatten()
     }
 
-    #[cfg(test)]
+    #[allow(dead_code)]
+    fn diagonal_next_cells(self, map_size: UVec2) -> impl Iterator<Item = Cell> {
+        self.directional_next_cells(map_size, Direction::diagonals().iter())
+            .into_iter()
+            .flatten()
+    }
+
     fn directional_next_cells<'d>(
         self,
         map_size: UVec2,
@@ -123,7 +129,7 @@ pub enum Direction {
 }
 
 impl Direction {
-    #[cfg(test)]
+    #[allow(dead_code)]
     fn all() -> [Self; 8] {
         [
             Self::Top,
@@ -133,6 +139,16 @@ impl Direction {
             Self::Bottom,
             Self::BottomLeft,
             Self::Left,
+            Self::TopLeft,
+        ]
+    }
+
+    #[allow(dead_code)]
+    fn diagonals() -> [Self; 4] {
+        [
+            Self::TopRight,
+            Self::BottomRight,
+            Self::BottomLeft,
             Self::TopLeft,
         ]
     }
