@@ -165,16 +165,31 @@ mod sort_all_items {
             .collect::<Vec<Entity>>()
     }
 
+    fn simple_items() -> Vec<Item> {
+        vec![
+            Item::new(1, Cell::new(0, 3), UVec3::new(2, 2, 1)),
+            Item::new(0, Cell::new(2, 2), UVec3::new(1, 2, 2)),
+            Item::new(2, Cell::new(1, 5), UVec3::new(1, 1, 2)),
+        ]
+    }
+
+    fn busy_items() -> Vec<Item> {
+        vec![
+            Item::new(2, Cell::new(0, 3), UVec3::new(2, 2, 1)),
+            Item::new(4, Cell::new(1, 6), UVec3::new(1, 2, 1)),
+            Item::new(0, Cell::new(2, 1), UVec3::new(1, 1, 2)),
+            Item::new(3, Cell::new(1, 5), UVec3::new(1, 1, 2)),
+            Item::new(5, Cell::new(0, 6), UVec3::new(1, 1, 1)),
+            Item::new(1, Cell::new(2, 3), UVec3::new(1, 3, 1)),
+        ]
+    }
+
     #[test]
     fn simple_topological() {
         let mut world = World::default();
         let mut schedule = Schedule::default();
 
-        let items = vec![
-            Item::new(1, Cell::new(0, 3), UVec3::new(2, 2, 1)),
-            Item::new(0, Cell::new(2, 2), UVec3::new(1, 2, 2)),
-            Item::new(2, Cell::new(1, 5), UVec3::new(1, 1, 2)),
-        ];
+        let items = simple_items();
         let expected_order = setup(&mut world, &mut schedule, &items, sort_items_topological);
 
         schedule.run(&mut world);
@@ -187,11 +202,7 @@ mod sort_all_items {
         let mut world = World::default();
         let mut schedule = Schedule::default();
 
-        let items = vec![
-            Item::new(1, Cell::new(0, 3), UVec3::new(2, 2, 1)),
-            Item::new(0, Cell::new(2, 2), UVec3::new(1, 2, 2)),
-            Item::new(2, Cell::new(1, 5), UVec3::new(1, 1, 2)),
-        ];
+        let items = simple_items();
         let expected_order = setup(&mut world, &mut schedule, &items, sort_items_partial_cmp);
 
         schedule.run(&mut world);
@@ -204,14 +215,7 @@ mod sort_all_items {
         let mut world = World::default();
         let mut schedule = Schedule::default();
 
-        let items = vec![
-            Item::new(2, Cell::new(0, 3), UVec3::new(2, 2, 1)),
-            Item::new(4, Cell::new(1, 6), UVec3::new(1, 2, 1)),
-            Item::new(0, Cell::new(2, 1), UVec3::new(1, 1, 2)),
-            Item::new(3, Cell::new(1, 5), UVec3::new(1, 1, 2)),
-            Item::new(5, Cell::new(0, 6), UVec3::new(1, 1, 1)),
-            Item::new(1, Cell::new(2, 3), UVec3::new(1, 3, 1)),
-        ];
+        let items = busy_items();
         let expected_order = setup(&mut world, &mut schedule, &items, sort_items_topological);
 
         schedule.run(&mut world);
@@ -224,14 +228,7 @@ mod sort_all_items {
         let mut world = World::default();
         let mut schedule = Schedule::default();
 
-        let items = vec![
-            Item::new(2, Cell::new(0, 3), UVec3::new(2, 2, 1)),
-            Item::new(4, Cell::new(1, 6), UVec3::new(1, 2, 1)),
-            Item::new(0, Cell::new(2, 1), UVec3::new(1, 1, 2)),
-            Item::new(3, Cell::new(1, 5), UVec3::new(1, 1, 2)),
-            Item::new(5, Cell::new(0, 6), UVec3::new(1, 1, 1)),
-            Item::new(1, Cell::new(2, 3), UVec3::new(1, 3, 1)),
-        ];
+        let items = busy_items();
         let expected_order = setup(&mut world, &mut schedule, &items, sort_items_partial_cmp);
 
         schedule.run(&mut world);
