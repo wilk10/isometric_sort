@@ -26,6 +26,26 @@ impl Cell {
         })
     }
 
+    #[cfg(test)]
+    fn all_next_cells(self, map_size: UVec2) -> impl Iterator<Item = Cell> {
+        self.directional_next_cells(map_size, Direction::all().iter())
+            .into_iter()
+            .flatten()
+    }
+
+    #[cfg(test)]
+    fn directional_next_cells<'d>(
+        self,
+        map_size: UVec2,
+        directions: impl Iterator<Item = &'d Direction>,
+    ) -> Vec<Option<Cell>> {
+        directions.fold(Vec::new(), |mut cells, direction| {
+            let next_cell = self.next_cell(*direction, map_size);
+            cells.push(next_cell);
+            cells
+        })
+    }
+
     fn nth_cell_in_direction(self, direction: Direction, n: u32, map_size: UVec2) -> Option<Cell> {
         let map_max = map_size.as_ivec2();
         (0..n).fold(Some(self), |mut next_cell, _| {
@@ -92,7 +112,6 @@ impl std::fmt::Debug for Cell {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Direction {
-    TopLeft,
     Top,
     TopRight,
     Right,
@@ -100,4 +119,90 @@ pub enum Direction {
     Bottom,
     BottomLeft,
     Left,
+    TopLeft,
+}
+
+impl Direction {
+    #[cfg(test)]
+    fn all() -> [Self; 8] {
+        [
+            Self::Top,
+            Self::TopRight,
+            Self::Right,
+            Self::BottomRight,
+            Self::Bottom,
+            Self::BottomLeft,
+            Self::Left,
+            Self::TopLeft,
+        ]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn find_next_cells_01() {
+        let cell = Cell::new(0, 1);
+        let expected = vec![
+            Cell::new(1, 0),
+            Cell::new(1, 1),
+            Cell::new(1, 2),
+            Cell::new(0, 3),
+            Cell::new(0, 2),
+            Cell::new(0, 0),
+        ];
+        let actual = cell.all_next_cells(UVec2::new(4, 6)).collect::<Vec<Cell>>();
+        assert_eq!(actual, expected)
+    }
+
+    #[test]
+    fn find_next_cells_13() {
+        let cell = Cell::new(1, 3);
+        let expected = vec![
+            Cell::new(1, 1),
+            Cell::new(2, 2),
+            Cell::new(2, 3),
+            Cell::new(2, 4),
+            Cell::new(1, 5),
+            Cell::new(1, 4),
+            Cell::new(0, 3),
+            Cell::new(1, 2),
+        ];
+        let actual = cell.all_next_cells(UVec2::new(4, 6)).collect::<Vec<Cell>>();
+        assert_eq!(actual, expected)
+    }
+
+    #[test]
+    fn find_next_cells_22() {
+        let cell = Cell::new(2, 2);
+        let expected = vec![
+            Cell::new(2, 0),
+            Cell::new(2, 1),
+            Cell::new(3, 2),
+            Cell::new(2, 3),
+            Cell::new(2, 4),
+            Cell::new(1, 3),
+            Cell::new(1, 2),
+            Cell::new(1, 1),
+        ];
+        let actual = cell.all_next_cells(UVec2::new(4, 6)).collect::<Vec<Cell>>();
+        assert_eq!(actual, expected)
+    }
+
+    #[test]
+    fn find_next_cells_34() {
+        let cell = Cell::new(3, 4);
+        let expected = vec![
+            Cell::new(3, 2),
+            Cell::new(3, 3),
+            Cell::new(3, 5),
+            Cell::new(2, 5),
+            Cell::new(2, 4),
+            Cell::new(2, 3),
+        ];
+        let actual = cell.all_next_cells(UVec2::new(4, 6)).collect::<Vec<Cell>>();
+        assert_eq!(actual, expected)
+    }
 }

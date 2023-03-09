@@ -148,3 +148,658 @@ impl PartialOrd for CurrentCells {
         }
     }
 }
+
+#[cfg(test)]
+mod test_cells_underneath {
+    use super::*;
+
+    /*
+      |   |   |
+    |0,0|1,0|2,0|
+      |0,1|1,1|2,1|
+    |0,2|1,2|2,2|
+      |0,3|1,3|2,3|
+    |0,4|1,4|2,4|
+      |0,5|1,5|2,5|
+        |   |   |
+    */
+
+    #[test]
+    fn test_cells_underneath_1x1_cell_13() {
+        let main_cell = Cell::new(1, 3);
+
+        let expected = vec![main_cell];
+
+        let actual = CurrentCells::underneath(
+            main_cell,
+            UVec3::new(1, 1, 1),
+            Direction::BottomRight,
+            UVec2::new(3, 6),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_cells_underneath_1x1_cell_01() {
+        let main_cell = Cell::new(0, 1);
+
+        let expected = vec![main_cell];
+
+        let actual = CurrentCells::underneath(
+            main_cell,
+            UVec3::new(1, 1, 1),
+            Direction::BottomRight,
+            UVec2::new(3, 6),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_cells_underneath_1x1_cell_02() {
+        let main_cell = Cell::new(0, 2);
+
+        let expected = vec![main_cell];
+
+        let actual = CurrentCells::underneath(
+            main_cell,
+            UVec3::new(1, 1, 1),
+            Direction::BottomRight,
+            UVec2::new(3, 6),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_cells_underneath_2x2() {
+        let main_cell = Cell::new(1, 3);
+
+        let expected = vec![main_cell, Cell::new(2, 2), Cell::new(1, 2), Cell::new(1, 1)];
+
+        let actual = CurrentCells::underneath(
+            main_cell,
+            UVec3::new(2, 2, 1),
+            Direction::BottomRight,
+            UVec2::new(3, 6),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_cells_underneath_1x2_facing_bottom_right() {
+        let main_cell = Cell::new(1, 3);
+
+        let expected = vec![main_cell, Cell::new(1, 2)];
+
+        let actual = CurrentCells::underneath(
+            main_cell,
+            UVec3::new(1, 2, 1),
+            Direction::BottomRight,
+            UVec2::new(3, 6),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_cells_underneath_1x2_facing_bottom_left() {
+        let main_cell = Cell::new(1, 3);
+
+        let expected = vec![main_cell, Cell::new(2, 2)];
+
+        let actual = CurrentCells::underneath(
+            main_cell,
+            UVec3::new(1, 2, 1),
+            Direction::BottomLeft,
+            UVec2::new(3, 6),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_cells_underneath_2x1_facing_bottom_right() {
+        let main_cell = Cell::new(2, 4);
+
+        let expected = vec![main_cell, Cell::new(2, 3)];
+
+        let actual = CurrentCells::underneath(
+            main_cell,
+            UVec3::new(2, 1, 1),
+            Direction::BottomRight,
+            UVec2::new(3, 6),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_cells_underneath_2x1_facing_bottom_left() {
+        let main_cell = Cell::new(2, 4);
+
+        let expected = vec![main_cell, Cell::new(1, 3)];
+
+        let actual = CurrentCells::underneath(
+            main_cell,
+            UVec3::new(2, 1, 1),
+            Direction::BottomLeft,
+            UVec2::new(3, 6),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_cells_underneath_2x3_facing_bottom_right() {
+        let main_cell = Cell::new(1, 5);
+
+        let expected = vec![
+            main_cell,
+            Cell::new(2, 4),
+            Cell::new(1, 4),
+            Cell::new(1, 3),
+            Cell::new(0, 3),
+            Cell::new(1, 2),
+        ];
+
+        let actual = CurrentCells::underneath(
+            main_cell,
+            UVec3::new(2, 3, 1),
+            Direction::BottomRight,
+            UVec2::new(3, 6),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_cells_underneath_2x3_facing_bottom_left() {
+        let main_cell = Cell::new(0, 3);
+
+        let expected = vec![
+            main_cell,
+            Cell::new(0, 2),
+            Cell::new(1, 2),
+            Cell::new(0, 1),
+            Cell::new(1, 1),
+            Cell::new(1, 0),
+        ];
+
+        let actual = CurrentCells::underneath(
+            main_cell,
+            UVec3::new(2, 3, 1),
+            Direction::BottomLeft,
+            UVec2::new(3, 6),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_cells_underneath_3x2_facing_bottom_right() {
+        let main_cell = Cell::new(1, 4);
+
+        let expected = vec![
+            main_cell,
+            Cell::new(1, 3),
+            Cell::new(2, 2),
+            Cell::new(0, 3),
+            Cell::new(1, 2),
+            Cell::new(1, 1),
+        ];
+
+        let actual = CurrentCells::underneath(
+            main_cell,
+            UVec3::new(3, 2, 1),
+            Direction::BottomRight,
+            UVec2::new(3, 6),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_cells_underneath_3x2_facing_bottom_left() {
+        let main_cell = Cell::new(1, 3);
+
+        let expected = vec![
+            main_cell,
+            Cell::new(1, 2),
+            Cell::new(0, 1),
+            Cell::new(2, 2),
+            Cell::new(1, 1),
+            Cell::new(1, 0),
+        ];
+
+        let actual = CurrentCells::underneath(
+            main_cell,
+            UVec3::new(3, 2, 1),
+            Direction::BottomLeft,
+            UVec2::new(3, 6),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_cells_underneath_invalid_facing_direction() {
+        let main_cell = Cell::new(1, 1);
+
+        CurrentCells::underneath(
+            main_cell,
+            UVec3::new(1, 2, 1),
+            Direction::Top,
+            UVec2::new(3, 6),
+        );
+    }
+
+    #[test]
+    fn test_cells_underneath_too_close_to_map_border() {
+        let main_cell = Cell::new(1, 2);
+        let dims = UVec3::new(3, 2, 1);
+
+        let actual =
+            CurrentCells::underneath(main_cell, dims, Direction::BottomLeft, UVec2::new(3, 6));
+
+        assert_ne!(actual.len(), (dims.x * dims.y) as usize);
+    }
+}
+
+#[cfg(test)]
+mod test_behind_cells {
+    use super::*;
+
+    /*
+      |   |   |
+    |0,0|1,0|2,0|
+      |0,1|1,1|2,1|
+    |0,2|1,2|2,2|
+      |0,3|1,3|2,3|
+    |0,4|1,4|2,4|
+      |0,5|1,5|2,5|
+    |0,6|1,6|2,6|
+      |   |   |
+    */
+
+    #[test]
+    fn test_behind_1x1x1_even_y() {
+        let main_cell = Cell::new(1, 2);
+        let expected = vec![Cell::new(0, 1), Cell::new(1, 1), Cell::new(1, 0)];
+        let actual = CurrentCells::behind(&[main_cell], 1, UVec2::new(3, 7));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_behind_1x1x1_odd_y() {
+        let main_cell = Cell::new(1, 5);
+        let expected = vec![Cell::new(1, 4), Cell::new(2, 4), Cell::new(1, 3)];
+        let actual = CurrentCells::behind(&[main_cell], 1, UVec2::new(3, 7));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_behind_1x1x2_even_y() {
+        let main_cell = Cell::new(1, 4);
+        let expected = vec![
+            Cell::new(0, 3),
+            Cell::new(1, 3),
+            Cell::new(1, 2),
+            Cell::new(0, 1),
+            Cell::new(1, 1),
+            Cell::new(1, 0),
+        ];
+        let actual = CurrentCells::behind(&[main_cell], 2, UVec2::new(3, 7));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_behind_1x1x2_odd_y() {
+        let main_cell = Cell::new(0, 5);
+        let expected = vec![
+            Cell::new(0, 4),
+            Cell::new(1, 4),
+            Cell::new(0, 3),
+            Cell::new(0, 2),
+            Cell::new(1, 2),
+            Cell::new(0, 1),
+        ];
+        let actual = CurrentCells::behind(&[main_cell], 2, UVec2::new(3, 7));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_behind_1x1x3() {
+        let main_cell = Cell::new(1, 6);
+        let expected = vec![
+            Cell::new(0, 5),
+            Cell::new(1, 5),
+            Cell::new(1, 4),
+            Cell::new(0, 3),
+            Cell::new(1, 3),
+            Cell::new(1, 2),
+            Cell::new(0, 1),
+            Cell::new(1, 1),
+            Cell::new(1, 0),
+        ];
+        let actual = CurrentCells::behind(&[main_cell], 3, UVec2::new(3, 7));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_behind_2x2x1() {
+        let underneath = vec![
+            Cell::new(1, 4),
+            Cell::new(0, 3),
+            Cell::new(1, 3),
+            Cell::new(1, 2),
+        ];
+        let expected = vec![
+            Cell::new(0, 2),
+            Cell::new(0, 1),
+            Cell::new(2, 2),
+            Cell::new(1, 1),
+            Cell::new(1, 0),
+        ];
+        let actual = CurrentCells::behind(&underneath, 1, UVec2::new(3, 7));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_behind_2x2x2() {
+        let underneath = vec![
+            Cell::new(1, 6),
+            Cell::new(0, 5),
+            Cell::new(1, 5),
+            Cell::new(1, 4),
+        ];
+        let expected = vec![
+            Cell::new(0, 4),
+            Cell::new(0, 3),
+            Cell::new(2, 4),
+            Cell::new(1, 3),
+            Cell::new(1, 2),
+            Cell::new(0, 2),
+            Cell::new(0, 1),
+            Cell::new(2, 2),
+            Cell::new(1, 1),
+            Cell::new(1, 0),
+        ];
+        let actual = CurrentCells::behind(&underneath, 2, UVec2::new(3, 7));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_behind_2x1x2() {
+        let underneath = vec![Cell::new(1, 5), Cell::new(2, 4)];
+        let expected = vec![
+            Cell::new(1, 4),
+            Cell::new(1, 3),
+            Cell::new(2, 3),
+            Cell::new(2, 2),
+            Cell::new(1, 2),
+            Cell::new(1, 1),
+            Cell::new(2, 1),
+            Cell::new(2, 0),
+        ];
+        let actual = CurrentCells::behind(&underneath, 2, UVec2::new(3, 7));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_behind_1x2x2() {
+        let underneath = vec![Cell::new(1, 6), Cell::new(0, 5)];
+        let expected = vec![
+            Cell::new(1, 5),
+            Cell::new(1, 4),
+            Cell::new(0, 4),
+            Cell::new(0, 3),
+            Cell::new(1, 3),
+            Cell::new(1, 2),
+            Cell::new(0, 2),
+            Cell::new(0, 1),
+        ];
+        let actual = CurrentCells::behind(&underneath, 2, UVec2::new(3, 7));
+        assert_eq!(actual, expected);
+    }
+}
+
+#[cfg(test)]
+mod test_sort_item {
+    use bevy::ecs::world::World;
+
+    use super::*;
+
+    /*
+      |   |   |
+    |0,0|1,0|2,0|
+      |0,1|1,1|2,1|
+    |0,2|1,2|2,2|
+      |0,3|1,3|2,3|
+    |0,4|1,4|2,4|
+      |0,5|1,5|2,5|
+    |0,6|1,6|2,6|
+      |   |   |
+    */
+
+    // TODO: remove the use of World and spawning the entity
+    fn setup(world: &mut World, cell: Cell, dims: UVec3) -> CurrentCells {
+        let _item_entity = world.spawn_empty().id();
+        CurrentCells::new(cell, dims, Direction::BottomRight, UVec2::new(3, 7))
+    }
+
+    /*
+      |   |   |
+    |   |   |   |
+      |   |   |   |
+    |   |   |   |
+      |   | B |   |
+    |   | A |   |
+      |   |   |   |
+    |   |   |   |
+      |   |   |
+    */
+    #[test]
+    fn test_1x1x1_vs_1x1x1_a_in_front() {
+        let mut world = World::default();
+        let a = setup(&mut world, Cell::new(1, 4), UVec3::new(1, 1, 1));
+        let b = setup(&mut world, Cell::new(1, 3), UVec3::new(1, 1, 1));
+        assert!(a > b);
+    }
+
+    /*
+      |   |   |
+    |   |   |   |
+      |   |   |   |
+    |   |   | A |
+      |   | B |   |
+    |   |   |   |
+      |   |   |   |
+    |   |   |   |
+      |   |   |
+    */
+    #[test]
+    fn test_1x1x1_vs_1x1x1_b_in_front() {
+        let mut world = World::default();
+        let a = setup(&mut world, Cell::new(2, 2), UVec3::new(1, 1, 1));
+        let b = setup(&mut world, Cell::new(1, 3), UVec3::new(1, 1, 1));
+        assert!(a < b);
+    }
+
+    /*
+      |   |   |
+    |   |   |   |
+      | B | A |   |
+    |   |   |   |
+      |   |   |   |
+    |   |   |   |
+      |   |   |   |
+    |   |   |   |
+      |   |   |
+    */
+    #[test]
+    fn test_1x1x1_vs_1x1x1_neither_in_front() {
+        let mut world = World::default();
+        let a = setup(&mut world, Cell::new(1, 1), UVec3::new(1, 1, 1));
+        let b = setup(&mut world, Cell::new(0, 1), UVec3::new(1, 1, 1));
+        assert!(a.partial_cmp(&b).is_none());
+    }
+
+    /*
+      |   |   |
+    |   | B | A |
+      |   | AB|   |
+    |   | A | B |
+      |   |   |   |
+    |   |   |   |
+      |   |   |   |
+    |   |   |   |
+      |   |   |
+    */
+    #[test]
+    #[should_panic]
+    fn test_1x1x1_vs_1x1x1_equal() {
+        let mut world = World::default();
+        let a = setup(&mut world, Cell::new(1, 2), UVec3::new(3, 1, 1));
+        let b = setup(&mut world, Cell::new(2, 2), UVec3::new(1, 3, 1));
+        let _ordering = a.partial_cmp(&b);
+    }
+
+    /*
+      |   |   |
+    |   |   |   |
+      | B |   |   |
+    |   |   |   |
+      |   |   |   |
+    | A2|   |   |
+      |   |   |   |
+    |   |   |   |
+      |   |   |
+    */
+    #[test]
+    fn test_1x1x2_vs_1x1x1_a_in_front() {
+        let mut world = World::default();
+        let a = setup(&mut world, Cell::new(0, 4), UVec3::new(1, 1, 2));
+        let b = setup(&mut world, Cell::new(0, 1), UVec3::new(1, 1, 1));
+        assert!(a > b);
+    }
+
+    /*
+      |   |   |
+    |   |   |   |
+      |   |   |   |
+    |   |   |   |
+      |   | B |   |
+    |   |   | A |
+      |   | A |   |
+    |   |   |   |
+      |   |   |
+    */
+    #[test]
+    fn test_2x1x1_vs_1x1x1_a_in_front() {
+        let mut world = World::default();
+        let a = setup(&mut world, Cell::new(1, 5), UVec3::new(2, 1, 1));
+        let b = setup(&mut world, Cell::new(1, 3), UVec3::new(1, 1, 1));
+        assert!(a > b);
+    }
+
+    /*
+      |   |   |
+    |   |   |   |
+      |   |   |   |
+    |   | A |   |
+      | A | A |   |
+    |   | A | A |
+      | B | A | A |
+    |   |   | A |
+      |   |   |
+    */
+    #[test]
+    fn test_2x4x1_vs_1x1x1_b_in_front() {
+        let mut world = World::default();
+        let a = setup(&mut world, Cell::new(2, 6), UVec3::new(2, 4, 1));
+        let b = setup(&mut world, Cell::new(0, 5), UVec3::new(1, 1, 1));
+        assert!(a < b);
+    }
+
+    /*
+      |   |   |
+    |   |   |   |
+      |   |   |   |
+    |   | A |   |
+      |   | A |   |
+    |   |   | A |
+      |   |   | A |
+    |   | B2|   |
+      |   |   |
+    */
+    #[test]
+    fn test_1x4x1_vs_1x1x2_b_in_front() {
+        let mut world = World::default();
+        let a = setup(&mut world, Cell::new(2, 5), UVec3::new(1, 4, 1));
+        let b = setup(&mut world, Cell::new(1, 6), UVec3::new(1, 1, 2));
+        assert!(a < b);
+    }
+
+    /*
+      |   |   |
+    | B2|   |   |
+      | B2| A |   |
+    |   | A |   |
+      | A |   |   |
+    |   |   |   |
+      |   |   |   |
+    |   |   |   |
+      |   |   |
+    */
+    #[test]
+    fn test_3x1x1_vs_1x2x2_a_in_front() {
+        let mut world = World::default();
+        let a = setup(&mut world, Cell::new(0, 3), UVec3::new(3, 1, 1));
+        let b = setup(&mut world, Cell::new(0, 1), UVec3::new(1, 2, 2));
+        assert!(a > b);
+    }
+
+    /*
+      |   |   |
+    |   |   |   |
+      | A |   |   |
+    | A |   |   |
+      |   |   |   |
+    |   |   | B2|
+      |   | B2|   |
+    |   |   |   |
+      |   |   |
+    */
+    #[test]
+    fn test_2x1x1_vs_2x1x1_neither_in_front() {
+        let mut world = World::default();
+        let a = setup(&mut world, Cell::new(0, 2), UVec3::new(2, 1, 1));
+        let b = setup(&mut world, Cell::new(1, 5), UVec3::new(2, 1, 2));
+        assert!(a.partial_cmp(&b).is_none());
+    }
+
+    /*
+      |   |   |
+    |   |   |   |
+      | A | C2|   |
+    | A | A | C2|
+      | A |   |   |
+    |   |   | B2|
+      |   |   |   |
+    |   |   |   |
+      |   |   |
+    */
+    #[test]
+    fn test_abc() {
+        let mut world = World::default();
+        let a = setup(&mut world, Cell::new(0, 3), UVec3::new(2, 2, 1));
+        let b = setup(&mut world, Cell::new(2, 4), UVec3::new(1, 1, 2));
+        let c = setup(&mut world, Cell::new(2, 2), UVec3::new(1, 2, 2));
+        assert!(a > c);
+        assert!(b > c);
+    }
+}
