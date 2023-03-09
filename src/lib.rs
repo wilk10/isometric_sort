@@ -98,7 +98,7 @@ mod sort_all_items {
     }
 
     #[test]
-    fn complex() {
+    fn busy() {
         let mut world = World::default();
         let mut schedule = Schedule::default();
 
