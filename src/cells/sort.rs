@@ -40,15 +40,6 @@ pub fn sort_items(
                     .any(|under| this_item.behind.contains(under))
             })
             .for_each(|(entity_behind, _)| map.add_dependency(*entity_behind, this_entity));
-
-        items_to_sort
-            .iter()
-            .filter(|(_, item)| {
-                item.behind
-                    .iter()
-                    .any(|behind| this_item.underneath.contains(behind))
-            })
-            .for_each(|(entity_in_front, _)| map.add_dependency(this_entity, *entity_in_front));
     }
 
     for (index, entity) in map.enumerate() {
