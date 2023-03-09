@@ -61,7 +61,7 @@ impl Cell {
     }
 
     #[allow(clippy::match_same_arms)]
-    fn offset(&self, direction: Direction) -> IVec2 {
+    fn offset(self, direction: Direction) -> IVec2 {
         let is_y_even = self.y % 2 == 0;
         match (direction, is_y_even) {
             (Direction::Top, _) => IVec2::new(0, -2),

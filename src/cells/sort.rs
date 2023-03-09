@@ -8,6 +8,7 @@ pub struct SortThisFrame {
     pub do_sort: bool,
 }
 
+#[allow(clippy::cast_precision_loss)]
 pub fn sort_items(
     mut sort_this_frame: ResMut<SortThisFrame>,
     mut items: Query<(Entity, &CurrentCells, &mut Transform)>,
@@ -44,7 +45,7 @@ pub fn sort_items(
 
     for (index, entity) in map.enumerate() {
         let new_z = base_z + ((index as f32 / items_to_sort.len() as f32) * z_span);
-        let (_, _, mut transform) = items.get_mut(entity).unwrap();
+        let (_, _, mut transform) = items.get_mut(entity).expect("Entity must exist");
         transform.translation.z = new_z;
     }
 
