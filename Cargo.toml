@@ -1,0 +1,10 @@
+[package]
+name = "isometric_sort"
+version = "0.1.0"
+publish = false
+authors = ["Anselmo Sampietro <ans.samp@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.10.0", default-features = false }
+topological-sort = "0.2.2"
