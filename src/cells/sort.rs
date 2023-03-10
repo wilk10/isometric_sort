@@ -9,32 +9,29 @@ use crate::cells::{
 pub fn sort_items_topological(mut items: Query<(Entity, &CurrentCells, &mut CompareTransforms)>) {
     let mut map = TopologicalSort::<Entity>::default();
 
-    let items_to_sort = items
-        .iter()
-        .filter(|(_, cells, _)| cells.dimensions.z > 0)
-        .map(|(entity, cells, _)| (entity, cells.clone()))
-        .collect::<Vec<(Entity, CurrentCells)>>();
+    let n_items = items.iter().filter(|(_, cells, _)| cells.dimensions.z > 0).count();
 
     for (this_entity, this_item, _) in items.iter() {
         if this_item.dimensions.z == 0 {
             continue;
         }
 
-        items_to_sort
+        items
             .iter()
-            .filter(|(_, item)| {
+            .filter(|(_, cells, _)| cells.dimensions.z > 0)
+            .filter(|(_, item, _)| {
                 item.underneath
                     .iter()
                     .any(|under| this_item.behind.contains(under))
             })
-            .for_each(|(entity_behind, _)| map.add_dependency(*entity_behind, this_entity));
+            .for_each(|(entity_behind, _, _)| map.add_dependency(entity_behind, this_entity));
     }
 
     for (index, entity) in map.enumerate() {
         assign_z(
             index,
             entity,
-            items_to_sort.len(),
+            n_items,
             SortMethod::Topological,
             &mut items,
         );
@@ -47,6 +44,8 @@ pub fn sort_items_partial_cmp(mut items: Query<(Entity, &CurrentCells, &mut Comp
         .filter(|(_, cells, _)| cells.dimensions.z > 0)
         .map(|(entity, cells, _)| (entity, cells.clone()))
         .collect::<Vec<(Entity, CurrentCells)>>();
+    items_to_sort.sort_by(|(_, a), (_, b)| b.main_cell.cmp(&a.main_cell));
+    // items_to_sort.sort_by(|(_, a), (_, b)| a.prod_dims().cmp(&b.prod_dims()));
     items_to_sort.sort_by(|(_, a), (_, b)| {
         a.partial_cmp(b)
             .or_else(|| a.main_cell.partial_cmp(&b.main_cell))

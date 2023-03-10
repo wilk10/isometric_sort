@@ -28,6 +28,10 @@ impl CurrentCells {
         }
     }
 
+    pub fn prod_dims(&self) -> u32 {
+        self.dimensions.x * self.dimensions.y * self.dimensions.z
+    }
+
     // NOTE:
     // - main_cell is always the bottom-most cell
     // if facing BottomRight:

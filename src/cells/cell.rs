@@ -97,13 +97,14 @@ impl From<Cell> for IVec2 {
 
 impl Ord for Cell {
     fn cmp(&self, other: &Self) -> Ordering {
-        // let y_order = self.y.cmp(&other.y);
-        // if y_order == Ordering::Equal {
-        //     self.x.cmp(&other.x)
-        // } else {
-        //     y_order
-        // }
-        self.y.cmp(&other.y)
+        let y_order = self.y.cmp(&other.y);
+        if y_order == Ordering::Equal {
+            self.x.cmp(&other.x)
+        } else {
+            y_order
+        }
+        // self.y.cmp(&other.y)
+        // (self.x + self.y).cmp(&(other.x + self.y))
     }
 }
 

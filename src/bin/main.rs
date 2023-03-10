@@ -2,15 +2,7 @@ use bevy::{app::AppExit, prelude::*};
 use isometric_sort::cells::{
     cell::{Cell, Direction},
     current::CurrentCells,
-    saved::{
-        CompareTransforms,
-        Corrects,
-        EntitiesNearby,
-        Mistake,
-        Results,
-        SavedCells,
-        SortMethod,
-    },
+    saved::{Check, CompareTransforms, Corrects, EntitiesNearby, Results, SavedCells, SortMethod},
     sort::{sort_items_partial_cmp, sort_items_topological},
 };
 
@@ -30,7 +22,7 @@ fn main() {
         .register_type::<SavedCells>()
         .init_resource::<Results>()
         .add_startup_system(load_scene)
-        .add_startup_system(load_mistakes)
+        .add_startup_system(load_checks)
         .add_system(map_saved_cells_to_current)
         .add_systems(
             (
@@ -53,15 +45,17 @@ fn main() {
         .run();
 }
 
+const SCENE_ID: u8 = 1;
+
 fn load_scene(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(DynamicSceneBundle {
-        scene: asset_server.load("scenes/debug_scene.scn.ron"),
+        scene: asset_server.load(format!("scenes/{SCENE_ID:?}/debug_scene.scn.ron")),
         ..default()
     });
 }
 
-fn load_mistakes(mut commands: Commands, asset_server: Res<AssetServer>) {
-    if let Ok(handles) = asset_server.load_folder("scenes/mistakes") {
+fn load_checks(mut commands: Commands, asset_server: Res<AssetServer>) {
+    if let Ok(handles) = asset_server.load_folder(format!("scenes/{SCENE_ID:?}/checks")) {
         for untyped_handle in &handles {
             let handle = untyped_handle.clone().typed();
             commands.spawn((DynamicSceneBundle {
@@ -72,20 +66,20 @@ fn load_mistakes(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 }
 
+// TODO: find a better way to compare them than checking if they have Transform or not
 fn map_saved_cells_to_current(
     mut commands: Commands,
     mut state: ResMut<NextState<TestState>>,
     items: Query<(Entity, &SavedCells), With<Transform>>,
-    mistakes: Query<(Entity, &SavedCells), Without<Transform>>,
+    checks: Query<(Entity, &SavedCells), Without<Transform>>,
 ) {
-    if items.iter().count() == 0 || mistakes.iter().count() == 0 {
+    if items.iter().count() == 0 || checks.iter().count() == 0 {
         return;
     }
     dbg!(items.iter().count());
-    dbg!(mistakes.iter().count());
+    dbg!(checks.iter().count());
 
     for (entity, saved) in items.iter() {
-        // should i do this? it may mess up with the ground truth around mistakes
         if saved.dimensions.z == 0 {
             commands.entity(entity).despawn();
         } else {
@@ -101,7 +95,7 @@ fn map_saved_cells_to_current(
                 .insert((current, CompareTransforms::default()));
         }
     }
-    for (entity, saved) in mistakes.iter() {
+    for (entity, saved) in checks.iter() {
         let current = CurrentCells::new(
             saved.main_cell,
             saved.dimensions,
@@ -111,7 +105,7 @@ fn map_saved_cells_to_current(
         commands
             .entity(entity)
             .remove::<SavedCells>()
-            .insert((current, Mistake));
+            .insert((current, Check));
     }
 
     state.set(TestState::Compare);
@@ -119,13 +113,13 @@ fn map_saved_cells_to_current(
 
 fn find_nearby_entities(
     mut commands: Commands,
-    items: Query<(Entity, &CurrentCells), Without<Mistake>>,
-    mistakes: Query<(Entity, &CurrentCells), With<Mistake>>,
+    items: Query<(Entity, &CurrentCells), Without<Check>>,
+    checks: Query<(Entity, &CurrentCells), With<Check>>,
 ) {
-    for (mistake_entity, mistake_cells) in mistakes.iter() {
+    for (check_entity, check_cells) in checks.iter() {
         let (corresponding_entity, _) = items
             .iter()
-            .find(|(_, cells)| cells.main_cell == mistake_cells.main_cell)
+            .find(|(_, cells)| cells.main_cell == check_cells.main_cell)
             .unwrap();
 
         let entities_behind = items
@@ -134,7 +128,7 @@ fn find_nearby_entities(
                 cells
                     .underneath
                     .iter()
-                    .any(|under| mistake_cells.behind.contains(under))
+                    .any(|under| check_cells.behind.contains(under))
             })
             .map(|(entity, _)| entity)
             .collect::<Vec<Entity>>();
@@ -145,7 +139,7 @@ fn find_nearby_entities(
                 cells
                     .behind
                     .iter()
-                    .any(|behind| mistake_cells.underneath.contains(behind))
+                    .any(|behind| check_cells.underneath.contains(behind))
             })
             .map(|(entity, _)| entity)
             .collect::<Vec<Entity>>();
@@ -155,31 +149,31 @@ fn find_nearby_entities(
             behind: entities_behind,
             in_front: entities_in_front,
         };
-        commands.entity(mistake_entity).insert(entities_nearby);
+        commands.entity(check_entity).insert(entities_nearby);
     }
 }
 
 fn check_z(
     mut results: ResMut<Results>,
     items: Query<&CompareTransforms>,
-    mistakes: Query<&EntitiesNearby>,
+    checks: Query<&EntitiesNearby>,
 ) {
-    for mistake in mistakes.iter() {
+    for check in checks.iter() {
         SortMethod::all()
             .iter()
             .map(|method| {
                 let corresponding_z = items
-                    .get(mistake.corresponding)
+                    .get(check.corresponding)
                     .ok()
                     .and_then(|compare| compare.map.get(method))
                     .unwrap();
-                let behind_zs = mistake
+                let behind_zs = check
                     .behind
                     .iter()
                     .flat_map(|entity| items.get(*entity).ok())
                     .flat_map(|compare| compare.map.get(method))
                     .collect::<Vec<&f32>>();
-                let in_front_zs = mistake
+                let in_front_zs = check
                     .in_front
                     .iter()
                     .flat_map(|entity| items.get(*entity).ok())

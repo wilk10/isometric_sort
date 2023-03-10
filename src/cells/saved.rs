@@ -39,7 +39,7 @@ impl From<&CurrentCells> for SavedCells {
 }
 
 #[derive(Component)]
-pub struct Mistake;
+pub struct Check;
 
 #[derive(Debug, Component)]
 pub struct EntitiesNearby {
