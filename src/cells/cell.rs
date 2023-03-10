@@ -1,7 +1,10 @@
-use bevy::math::{IVec2, UVec2};
+use bevy::{
+    math::{IVec2, UVec2},
+    reflect::Reflect,
+};
 use std::cmp::Ordering;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Reflect)]
 pub struct Cell {
     pub x: u32,
     pub y: u32,
@@ -116,7 +119,7 @@ impl std::fmt::Debug for Cell {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
 pub enum Direction {
     Top,
     TopRight,

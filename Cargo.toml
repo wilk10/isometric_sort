@@ -5,6 +5,14 @@ publish = false
 authors = ["Anselmo Sampietro <ans.samp@gmail.com>"]
 edition = "2021"
 
+[lib]
+name = "isometric_sort"
+path = "src/lib.rs"
+
+[[bin]]
+name = "test_scene"
+path = "src/bin/main.rs"
+
 [dependencies]
-bevy = { version = "0.10.0", default-features = false }
+bevy = { version = "0.10.0" }
 topological-sort = "0.2.2"
