@@ -43,7 +43,7 @@ pub struct Mistake;
 
 #[derive(Debug, Component)]
 pub struct EntitiesNearby {
-    pub identical: Entity,
+    pub corresponding: Entity,
     pub in_front: Vec<Entity>,
     pub behind: Vec<Entity>,
 }
@@ -73,7 +73,7 @@ pub enum SortMethod {
 }
 
 impl SortMethod {
-    fn all() -> [Self; 2] {
+    pub fn all() -> [Self; 2] {
         [Self::Topological, Self::PartialCmp]
     }
 }

@@ -2,7 +2,7 @@ use bevy::{app::AppExit, prelude::*};
 use isometric_sort::cells::{
     cell::{Cell, Direction},
     current::CurrentCells,
-    saved::{CompareTransforms, EntitiesNearby, Mistake, SavedCells},
+    saved::{CompareTransforms, EntitiesNearby, Mistake, SavedCells, SortMethod},
     sort::{sort_items_partial_cmp, sort_items_topological},
 };
 
@@ -106,10 +106,11 @@ fn find_nearby_entities(
     mistakes: Query<(Entity, &CurrentCells), With<Mistake>>,
 ) {
     for (mistake_entity, mistake_cells) in mistakes.iter() {
-        let (identical_entity, _) = items
+        let (corresponding_entity, _) = items
             .iter()
             .find(|(_, cells)| cells.main_cell == mistake_cells.main_cell)
             .unwrap();
+
         let entities_behind = items
             .iter()
             .filter(|(_, cells)| {
@@ -120,6 +121,7 @@ fn find_nearby_entities(
             })
             .map(|(entity, _)| entity)
             .collect::<Vec<Entity>>();
+
         let entities_in_front = items
             .iter()
             .filter(|(_, cells)| {
@@ -130,19 +132,51 @@ fn find_nearby_entities(
             })
             .map(|(entity, _)| entity)
             .collect::<Vec<Entity>>();
+
         let entities_nearby = EntitiesNearby {
-            identical: identical_entity,
+            corresponding: corresponding_entity,
             behind: entities_behind,
             in_front: entities_in_front,
         };
-        dbg!(&entities_nearby);
         commands.entity(mistake_entity).insert(entities_nearby);
     }
 }
 
-fn check_z(compares: Query<&CompareTransforms>) {
-    for _compare in compares.iter() {
-        // TODO
+fn check_z(items: Query<&CompareTransforms>, mistakes: Query<&EntitiesNearby>) {
+    for mistake in mistakes.iter() {
+        SortMethod::all()
+            .iter()
+            .map(|method| {
+                let corresponding_z = items
+                    .get(mistake.corresponding)
+                    .ok()
+                    .and_then(|compare| compare.map.get(method))
+                    .unwrap();
+                let behind_zs = mistake
+                    .behind
+                    .iter()
+                    .flat_map(|entity| items.get(*entity).ok())
+                    .flat_map(|compare| compare.map.get(method))
+                    .collect::<Vec<&f32>>();
+                let in_front_zs = mistake
+                    .in_front
+                    .iter()
+                    .flat_map(|entity| items.get(*entity).ok())
+                    .flat_map(|compare| compare.map.get(method))
+                    .collect::<Vec<&f32>>();
+                (method, corresponding_z, behind_zs, in_front_zs)
+            })
+            .for_each(|(method, item_z, behind_z, in_front_z)| {
+                println!("======");
+                dbg!(&method);
+                dbg!(&behind_z);
+                dbg!(&item_z);
+                dbg!(&in_front_z);
+                let are_behind_z_correct = behind_z.into_iter().all(|z| z < item_z);
+                let are_in_front_z_correct = in_front_z.into_iter().all(|z| z > item_z);
+                dbg!(are_behind_z_correct);
+                dbg!(are_in_front_z_correct);
+            });
     }
 }
 
