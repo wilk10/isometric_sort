@@ -2,7 +2,7 @@ use bevy::{app::AppExit, prelude::*};
 use isometric_sort::cells::{
     cell::{Cell, Direction},
     current::CurrentCells,
-    saved::SavedCells,
+    saved::{EntitiesNearby, SavedCells},
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, States)]
@@ -26,6 +26,7 @@ fn main() {
         .add_startup_system(load_mistakes)
         .add_system(map_saved_cells_to_current)
         .add_system(compare.in_schedule(OnEnter(TestState::Compare)))
+        .add_system(exit.run_if(in_state(TestState::Compare)))
         .run();
 }
 
@@ -51,16 +52,16 @@ fn load_mistakes(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn map_saved_cells_to_current(
     mut commands: Commands,
     mut state: ResMut<NextState<TestState>>,
-    entities: Query<(Entity, &SavedCells), With<Transform>>,
+    items: Query<(Entity, &SavedCells), With<Transform>>,
     mistakes: Query<(Entity, &SavedCells), Without<Transform>>,
 ) {
-    if entities.iter().count() == 0 || mistakes.iter().count() == 0 {
+    if items.iter().count() == 0 || mistakes.iter().count() == 0 {
         return;
     }
-    dbg!(entities.iter().count());
+    dbg!(items.iter().count());
     dbg!(mistakes.iter().count());
 
-    for (entity, saved) in entities.iter() {
+    for (entity, saved) in items.iter() {
         let current = CurrentCells::new(
             saved.main_cell,
             saved.dimensions,
@@ -88,6 +89,46 @@ fn map_saved_cells_to_current(
     state.set(TestState::Compare);
 }
 
-fn compare(mut app_exit_events: EventWriter<AppExit>) {
+fn compare(
+    mut commands: Commands,
+    items: Query<(Entity, &CurrentCells), Without<Mistake>>,
+    mistakes: Query<(Entity, &CurrentCells), With<Mistake>>,
+) {
+    for (mistake_entity, mistake_cells) in mistakes.iter() {
+        let (identical_entity, _) = items
+            .iter()
+            .find(|(_, cells)| cells.main_cell == mistake_cells.main_cell)
+            .unwrap();
+        let entities_behind = items
+            .iter()
+            .filter(|(_, cells)| {
+                cells
+                    .underneath
+                    .iter()
+                    .any(|under| mistake_cells.behind.contains(under))
+            })
+            .map(|(entity, _)| entity)
+            .collect::<Vec<Entity>>();
+        let entities_in_front = items
+            .iter()
+            .filter(|(_, cells)| {
+                cells
+                    .behind
+                    .iter()
+                    .any(|behind| mistake_cells.underneath.contains(behind))
+            })
+            .map(|(entity, _)| entity)
+            .collect::<Vec<Entity>>();
+        let entities_nearby = EntitiesNearby {
+            identical: identical_entity,
+            behind: entities_behind,
+            in_front: entities_in_front,
+        };
+        dbg!(&entities_nearby);
+        commands.entity(mistake_entity).insert(entities_nearby);
+    }
+}
+
+fn exit(mut app_exit_events: EventWriter<AppExit>) {
     app_exit_events.send(AppExit);
 }

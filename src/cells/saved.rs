@@ -1,5 +1,5 @@
 use bevy::{
-    ecs::{component::Component, reflect::ReflectComponent},
+    ecs::{component::Component, entity::Entity, reflect::ReflectComponent},
     math::UVec3,
     reflect::Reflect,
 };
@@ -35,4 +35,11 @@ impl From<&CurrentCells> for SavedCells {
             facing: cells.facing,
         }
     }
+}
+
+#[derive(Debug, Component)]
+pub struct EntitiesNearby {
+    pub identical: Entity,
+    pub in_front: Vec<Entity>,
+    pub behind: Vec<Entity>,
 }
