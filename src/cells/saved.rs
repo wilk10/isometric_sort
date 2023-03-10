@@ -1,5 +1,5 @@
 use bevy::{
-    ecs::{component::Component, entity::Entity, reflect::ReflectComponent},
+    ecs::{component::Component, entity::Entity, reflect::ReflectComponent, system::Resource},
     math::UVec3,
     reflect::Reflect,
     utils::HashMap,
@@ -75,5 +75,35 @@ pub enum SortMethod {
 impl SortMethod {
     pub fn all() -> [Self; 2] {
         [Self::Topological, Self::PartialCmp]
+    }
+}
+
+#[derive(Debug, Resource)]
+pub struct Results {
+    pub map: HashMap<SortMethod, Vec<Corrects>>,
+}
+
+impl Default for Results {
+    fn default() -> Self {
+        Self {
+            map: SortMethod::all()
+                .iter()
+                .fold(HashMap::new(), |mut map, method| {
+                    map.insert(*method, Vec::new());
+                    map
+                }),
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Corrects {
+    pub all_behind: bool,
+    pub all_in_front: bool,
+}
+
+impl Corrects {
+    pub fn are_both_true(&self) -> bool {
+        self.all_behind && self.all_in_front
     }
 }

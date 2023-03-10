@@ -2,7 +2,15 @@ use bevy::{app::AppExit, prelude::*};
 use isometric_sort::cells::{
     cell::{Cell, Direction},
     current::CurrentCells,
-    saved::{CompareTransforms, EntitiesNearby, Mistake, SavedCells, SortMethod},
+    saved::{
+        CompareTransforms,
+        Corrects,
+        EntitiesNearby,
+        Mistake,
+        Results,
+        SavedCells,
+        SortMethod,
+    },
     sort::{sort_items_partial_cmp, sort_items_topological},
 };
 
@@ -20,6 +28,7 @@ fn main() {
         .register_type::<Cell>()
         .register_type::<Direction>()
         .register_type::<SavedCells>()
+        .init_resource::<Results>()
         .add_startup_system(load_scene)
         .add_startup_system(load_mistakes)
         .add_system(map_saved_cells_to_current)
@@ -32,7 +41,15 @@ fn main() {
                 .in_schedule(OnEnter(TestState::Compare)),
         )
         .add_system(check_z.run_if(in_state(TestState::Compare)))
-        .add_system(exit.run_if(in_state(TestState::Compare)))
+        .add_system(
+            print_results
+                .after(check_z)
+                .run_if(in_state(TestState::Compare)),
+        )
+        .add_system(
+            exit.after(print_results)
+                .run_if(in_state(TestState::Compare)),
+        )
         .run();
 }
 
@@ -142,7 +159,11 @@ fn find_nearby_entities(
     }
 }
 
-fn check_z(items: Query<&CompareTransforms>, mistakes: Query<&EntitiesNearby>) {
+fn check_z(
+    mut results: ResMut<Results>,
+    items: Query<&CompareTransforms>,
+    mistakes: Query<&EntitiesNearby>,
+) {
     for mistake in mistakes.iter() {
         SortMethod::all()
             .iter()
@@ -176,7 +197,24 @@ fn check_z(items: Query<&CompareTransforms>, mistakes: Query<&EntitiesNearby>) {
                 let are_in_front_z_correct = in_front_z.into_iter().all(|z| z > item_z);
                 dbg!(are_behind_z_correct);
                 dbg!(are_in_front_z_correct);
+
+                let corrects = results.map.get_mut(method).unwrap();
+                corrects.push(Corrects {
+                    all_behind: are_behind_z_correct,
+                    all_in_front: are_in_front_z_correct,
+                });
             });
+    }
+}
+
+fn print_results(results: Res<Results>) {
+    for method in &SortMethod::all() {
+        println!("======================");
+        let corrects = results.map.get(method).unwrap();
+        dbg!(method);
+        corrects.iter().for_each(|corrects| {
+            dbg!(corrects.are_both_true());
+        })
     }
 }
 
