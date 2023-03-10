@@ -1,9 +1,12 @@
 use bevy::prelude::*;
 use topological_sort::TopologicalSort;
 
-use crate::cells::current::CurrentCells;
+use crate::cells::{
+    current::CurrentCells,
+    saved::{CompareTransforms, SortMethod},
+};
 
-pub fn sort_items_topological(mut items: Query<(Entity, &CurrentCells, &mut Transform)>) {
+pub fn sort_items_topological(mut items: Query<(Entity, &CurrentCells, &mut CompareTransforms)>) {
     let mut map = TopologicalSort::<Entity>::default();
 
     let items_to_sort = items
@@ -28,11 +31,17 @@ pub fn sort_items_topological(mut items: Query<(Entity, &CurrentCells, &mut Tran
     }
 
     for (index, entity) in map.enumerate() {
-        assign_z(index, entity, items_to_sort.len(), &mut items);
+        assign_z(
+            index,
+            entity,
+            items_to_sort.len(),
+            SortMethod::Topological,
+            &mut items,
+        );
     }
 }
 
-pub fn sort_items_partial_cmp(mut items: Query<(Entity, &CurrentCells, &mut Transform)>) {
+pub fn sort_items_partial_cmp(mut items: Query<(Entity, &CurrentCells, &mut CompareTransforms)>) {
     let mut items_to_sort = items
         .iter()
         .filter(|(_, cells, _)| cells.dimensions.z > 0)
@@ -45,7 +54,13 @@ pub fn sort_items_partial_cmp(mut items: Query<(Entity, &CurrentCells, &mut Tran
     });
 
     for (index, (entity, _)) in items_to_sort.iter().enumerate() {
-        assign_z(index, *entity, items_to_sort.len(), &mut items);
+        assign_z(
+            index,
+            *entity,
+            items_to_sort.len(),
+            SortMethod::PartialCmp,
+            &mut items,
+        );
     }
 }
 
@@ -54,13 +69,15 @@ fn assign_z(
     index: usize,
     entity: Entity,
     n_items: usize,
-    items: &mut Query<(Entity, &CurrentCells, &mut Transform)>,
+    method: SortMethod,
+    items: &mut Query<(Entity, &CurrentCells, &mut CompareTransforms)>,
 ) {
     let base_z = 0.;
     let z_span = 5.;
     let new_z = base_z + ((index as f32 / n_items as f32) * z_span);
-    let (_, _, mut transform) = items.get_mut(entity).expect("Entity must exist");
-    transform.translation.z = new_z;
+    let (_, _, mut compare) = items.get_mut(entity).expect("Entity must exist");
+    let z = compare.map.get_mut(&method).unwrap();
+    *z = new_z;
 }
 
 #[cfg(test)]
@@ -124,18 +141,19 @@ mod sort_all_items {
             Direction::BottomRight,
             UVec2::new(4, 7),
         );
-        world
-            .spawn((cells, Transform::from_translation(Vec3::ZERO)))
-            .id()
+        world.spawn((cells, CompareTransforms::default())).id()
     }
 
-    fn actual_order(world: &mut World) -> Vec<Entity> {
+    fn actual_order(world: &mut World, method: SortMethod) -> Vec<Entity> {
         let mut entities = world
-            .query::<(Entity, &Transform)>()
+            .query::<(Entity, &CompareTransforms)>()
             .iter(world)
-            .collect::<Vec<(Entity, &Transform)>>();
-        entities
-            .sort_by(|(_, a), (_, b)| FloatOrd(a.translation.z).cmp(&FloatOrd(b.translation.z)));
+            .collect::<Vec<(Entity, &CompareTransforms)>>();
+
+        entities.sort_by(|(_, a), (_, b)| {
+            FloatOrd(*a.map.get(&method).unwrap()).cmp(&FloatOrd(*b.map.get(&method).unwrap()))
+        });
+
         entities
             .into_iter()
             .map(|(entity, _)| entity)
@@ -175,7 +193,11 @@ mod sort_all_items {
         expected_order
     }
 
-    fn run_add_later<M>(world: &mut World, system: impl IntoSystemConfig<M>) -> Vec<Option<usize>> {
+    fn run_add_later<M>(
+        world: &mut World,
+        system: impl IntoSystemConfig<M>,
+        method: SortMethod,
+    ) -> Vec<Option<usize>> {
         let mut schedule = Schedule::default();
 
         let initial = vec![
@@ -193,7 +215,7 @@ mod sort_all_items {
 
         schedule.run(world);
 
-        let actual = actual_order(world);
+        let actual = actual_order(world, method);
         let position_last_item = actual.iter().position(|entity| *entity == later_entity);
         let position_entity_index_2 = actual
             .iter()
@@ -213,34 +235,46 @@ mod sort_all_items {
     fn simple_topological() {
         let mut world = World::default();
         let expected_order = run_simple(&mut world, sort_items_topological);
-        assert_eq!(actual_order(&mut world), expected_order);
+        assert_eq!(
+            actual_order(&mut world, SortMethod::Topological),
+            expected_order
+        );
     }
 
     #[test]
     fn simple_partial_cmp() {
         let mut world = World::default();
         let expected_order = run_simple(&mut world, sort_items_partial_cmp);
-        assert_eq!(actual_order(&mut world), expected_order);
+        assert_eq!(
+            actual_order(&mut world, SortMethod::PartialCmp),
+            expected_order
+        );
     }
 
     #[test]
     fn busy_topological() {
         let mut world = World::default();
         let expected_order = run_busy(&mut world, sort_items_topological);
-        assert_eq!(actual_order(&mut world), expected_order);
+        assert_eq!(
+            actual_order(&mut world, SortMethod::Topological),
+            expected_order
+        );
     }
 
     #[test]
     fn busy_partial_cmp() {
         let mut world = World::default();
         let expected_order = run_busy(&mut world, sort_items_partial_cmp);
-        assert_eq!(actual_order(&mut world), expected_order);
+        assert_eq!(
+            actual_order(&mut world, SortMethod::PartialCmp),
+            expected_order
+        );
     }
 
     #[test]
     fn add_later_topological() {
         let mut world = World::default();
-        let positions = run_add_later(&mut world, sort_items_topological);
+        let positions = run_add_later(&mut world, sort_items_topological, SortMethod::Topological);
         let position_last_item = positions[0];
         let position_item_2 = positions[1];
         let position_item_3 = positions[2];
@@ -251,7 +285,7 @@ mod sort_all_items {
     #[test]
     fn add_later_partial_cmp() {
         let mut world = World::default();
-        let positions = run_add_later(&mut world, sort_items_partial_cmp);
+        let positions = run_add_later(&mut world, sort_items_partial_cmp, SortMethod::PartialCmp);
         let position_last_item = positions[0];
         let position_item_2 = positions[1];
         let position_item_3 = positions[2];

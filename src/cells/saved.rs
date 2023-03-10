@@ -2,6 +2,7 @@ use bevy::{
     ecs::{component::Component, entity::Entity, reflect::ReflectComponent},
     math::UVec3,
     reflect::Reflect,
+    utils::HashMap,
 };
 
 use crate::cells::{
@@ -37,9 +38,42 @@ impl From<&CurrentCells> for SavedCells {
     }
 }
 
+#[derive(Component)]
+pub struct Mistake;
+
 #[derive(Debug, Component)]
 pub struct EntitiesNearby {
     pub identical: Entity,
     pub in_front: Vec<Entity>,
     pub behind: Vec<Entity>,
+}
+
+#[derive(Debug, Component)]
+pub struct CompareTransforms {
+    pub map: HashMap<SortMethod, f32>,
+}
+
+impl Default for CompareTransforms {
+    fn default() -> Self {
+        Self {
+            map: SortMethod::all()
+                .iter()
+                .fold(HashMap::new(), |mut map, method| {
+                    map.insert(*method, 0.);
+                    map
+                }),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SortMethod {
+    Topological,
+    PartialCmp,
+}
+
+impl SortMethod {
+    fn all() -> [Self; 2] {
+        [Self::Topological, Self::PartialCmp]
+    }
 }

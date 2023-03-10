@@ -2,7 +2,8 @@ use bevy::{app::AppExit, prelude::*};
 use isometric_sort::cells::{
     cell::{Cell, Direction},
     current::CurrentCells,
-    saved::{EntitiesNearby, SavedCells},
+    saved::{CompareTransforms, EntitiesNearby, Mistake, SavedCells},
+    sort::{sort_items_partial_cmp, sort_items_topological},
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, States)]
@@ -11,9 +12,6 @@ enum TestState {
     Prepare,
     Compare,
 }
-
-#[derive(Component)]
-struct Mistake;
 
 fn main() {
     let mut app = App::new();
@@ -25,7 +23,15 @@ fn main() {
         .add_startup_system(load_scene)
         .add_startup_system(load_mistakes)
         .add_system(map_saved_cells_to_current)
-        .add_system(compare.in_schedule(OnEnter(TestState::Compare)))
+        .add_systems(
+            (
+                find_nearby_entities,
+                sort_items_topological,
+                sort_items_partial_cmp,
+            )
+                .in_schedule(OnEnter(TestState::Compare)),
+        )
+        .add_system(check_z.run_if(in_state(TestState::Compare)))
         .add_system(exit.run_if(in_state(TestState::Compare)))
         .run();
 }
@@ -62,16 +68,21 @@ fn map_saved_cells_to_current(
     dbg!(mistakes.iter().count());
 
     for (entity, saved) in items.iter() {
-        let current = CurrentCells::new(
-            saved.main_cell,
-            saved.dimensions,
-            saved.facing,
-            UVec2::new(128, 128),
-        );
-        commands
-            .entity(entity)
-            .remove::<SavedCells>()
-            .insert(current);
+        // should i do this? it may mess up with the ground truth around mistakes
+        if saved.dimensions.z == 0 {
+            commands.entity(entity).despawn();
+        } else {
+            let current = CurrentCells::new(
+                saved.main_cell,
+                saved.dimensions,
+                saved.facing,
+                UVec2::new(128, 128),
+            );
+            commands
+                .entity(entity)
+                .remove::<SavedCells>()
+                .insert((current, CompareTransforms::default()));
+        }
     }
     for (entity, saved) in mistakes.iter() {
         let current = CurrentCells::new(
@@ -89,7 +100,7 @@ fn map_saved_cells_to_current(
     state.set(TestState::Compare);
 }
 
-fn compare(
+fn find_nearby_entities(
     mut commands: Commands,
     items: Query<(Entity, &CurrentCells), Without<Mistake>>,
     mistakes: Query<(Entity, &CurrentCells), With<Mistake>>,
@@ -126,6 +137,12 @@ fn compare(
         };
         dbg!(&entities_nearby);
         commands.entity(mistake_entity).insert(entities_nearby);
+    }
+}
+
+fn check_z(compares: Query<&CompareTransforms>) {
+    for _compare in compares.iter() {
+        // TODO
     }
 }
 
